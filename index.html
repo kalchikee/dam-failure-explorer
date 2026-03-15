@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dam Failure Inundation Explorer | Who Lives Downstream?</title>
+  <meta name="description" content="Interactive map of 16,800+ high-hazard US dams. Explore risk scores, structural condition, and estimated downstream inundation reach based on National Inventory of Dams data.">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <link rel="stylesheet" href="web/css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-title">
+      <div class="header-icon">&#127754;</div>
+      <div>
+        <h1>Dam Failure Inundation Explorer</h1>
+        <p class="subtitle">National Inventory of Dams &middot; USACE 2026 &middot; 16,805 High-Hazard Dams Analyzed</p>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" data-panel="map">Map</button>
+      <button class="nav-btn" data-panel="rankings">State Rankings</button>
+      <button class="nav-btn" data-panel="search">Find Dams</button>
+      <button class="nav-btn" data-panel="about">Methodology</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ── STAT BANNER ─────────────────────────────────────────────────────── -->
+<div class="stat-banner">
+  <div class="stat-card">
+    <div class="stat-number" id="stat-total">92,445</div>
+    <div class="stat-label">Total US Dams</div>
+  </div>
+  <div class="stat-card water">
+    <div class="stat-number" id="stat-hh">16,805</div>
+    <div class="stat-label">High-Hazard Dams</div>
+  </div>
+  <div class="stat-card critical">
+    <div class="stat-number" id="stat-critical">806</div>
+    <div class="stat-label">Critical + High Risk</div>
+  </div>
+  <div class="stat-card high">
+    <div class="stat-number" id="stat-poor">2,637</div>
+    <div class="stat-label">Poor / Unsatisfactory Condition</div>
+  </div>
+  <div class="stat-card elevated">
+    <div class="stat-number" id="stat-no-eap">2,470</div>
+    <div class="stat-label">No Emergency Action Plan</div>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- MAP PANEL -->
+  <section id="panel-map" class="panel active">
+    <div class="map-layout">
+      <div class="map-sidebar">
+
+        <div class="sidebar-section">
+          <h3>Data Status</h3>
+          <div class="load-status" id="load-status">
+            <div class="spinner"></div> Loading…
+          </div>
+          <div style="font-size:11px;color:#8b949e;margin-top:6px" id="load-count"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Risk Tier</h3>
+          <div class="legend">
+            <label class="legend-item">
+              <input type="checkbox" id="chk-critical" checked>
+              <span class="dot" style="background:#d32f2f"></span>
+              Critical <small id="cnt-critical"></small>
+            </label>
+            <label class="legend-item">
+              <input type="checkbox" id="chk-high" checked>
+              <span class="dot" style="background:#f57c00"></span>
+              High <small id="cnt-high"></small>
+            </label>
+            <label class="legend-item">
+              <input type="checkbox" id="chk-elevated" checked>
+              <span class="dot" style="background:#fbc02d"></span>
+              Elevated <small id="cnt-elevated"></small>
+            </label>
+            <label class="legend-item">
+              <input type="checkbox" id="chk-moderate" checked>
+              <span class="dot" style="background:#388e3c"></span>
+              Moderate <small id="cnt-moderate"></small>
+            </label>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Filter by State</h3>
+          <select id="filter-state">
+            <option value="">All States</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Condition Breakdown</h3>
+          <div id="condition-chart"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Dam Detail</h3>
+          <div id="detail-content" style="font-size:12px;color:#8b949e">
+            Click any dam to see details.
+          </div>
+        </div>
+
+      </div>
+      <div id="map"></div>
+    </div>
+  </section>
+
+  <!-- RANKINGS PANEL -->
+  <section id="panel-rankings" class="panel">
+    <div class="rankings-layout">
+      <div class="rankings-controls">
+        <h2>State Risk Rankings</h2>
+        <div class="control-row">
+          <label>
+            Rank by
+            <select id="rank-metric">
+              <option value="total_high_hazard">Total High-Hazard Dams</option>
+              <option value="critical_count">Critical-Risk Dams</option>
+              <option value="poor_unsatisfactory">Poor / Unsatisfactory Condition</option>
+              <option value="avg_risk_score">Average Risk Score</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="rankings-chart"></div>
+    </div>
+  </section>
+
+  <!-- SEARCH PANEL -->
+  <section id="panel-search" class="panel">
+    <div class="search-layout">
+      <h2>Find High-Hazard Dams</h2>
+      <div class="search-controls">
+        <input type="text" id="search-input" placeholder="Search by dam name, river, county…">
+        <select id="search-state">
+          <option value="">All States</option>
+        </select>
+        <select id="search-condition">
+          <option value="">Any Condition</option>
+          <option value="Unsatisfactory">Unsatisfactory</option>
+          <option value="Poor">Poor</option>
+          <option value="Fair">Fair</option>
+          <option value="Satisfactory">Satisfactory</option>
+          <option value="Not Rated">Not Rated</option>
+        </select>
+        <select id="search-tier">
+          <option value="">Any Risk Tier</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Elevated">Elevated</option>
+          <option value="Moderate">Moderate</option>
+        </select>
+        <button id="search-btn">Search</button>
+        <button id="top-risk-btn">Top 100 Riskiest</button>
+      </div>
+      <div id="search-status">Loading dam data…</div>
+      <div style="overflow-x:auto">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>Dam Name</th>
+              <th>State</th>
+              <th>County</th>
+              <th>Risk Tier</th>
+              <th>Condition</th>
+              <th>Risk Score</th>
+              <th>Built</th>
+              <th>Height (ft)</th>
+              <th>Storage (ac-ft)</th>
+            </tr>
+          </thead>
+          <tbody id="search-results"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT PANEL -->
+  <section id="panel-about" class="panel">
+    <div class="about-layout">
+      <h2>Methodology &amp; Data Sources</h2>
+      <div class="about-content">
+
+        <h3>Overview</h3>
+        <p>
+          The United States has over 92,000 dams. The Army Corps of Engineers classifies
+          <strong>16,805</strong> of them as <em>high-hazard potential</em> — meaning failure
+          would likely cause loss of life. Despite this, most Americans have no idea whether
+          they live downstream of a compromised dam. This explorer maps every high-hazard dam
+          in the National Inventory of Dams (NID), scores each one by structural risk, and
+          estimates the downstream reach of a potential failure using the Froehlich (1995)
+          breach discharge equation.
+        </p>
+
+        <h3>Data Source</h3>
+        <p>
+          All dam data comes from the <a href="https://nid.sec.usace.army.mil" target="_blank" rel="noopener">
+          National Inventory of Dams (NID)</a>, maintained by the US Army Corps of Engineers.
+          The dataset downloaded for this analysis contains <strong>92,445 dams</strong> and was
+          last updated <strong>March 15, 2026</strong>. The NID includes dam name, location,
+          hazard classification, condition assessment, height, storage volume, dam type,
+          year completed, owner, and inspection history.
+        </p>
+
+        <h3>Dam Risk Score (0–100)</h3>
+        <p>
+          Each high-hazard dam receives a composite risk score based on four factors:
+        </p>
+        <table class="method-table">
+          <thead>
+            <tr><th>Factor</th><th>Weight</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Condition Assessment</td><td>35%</td><td>Unsatisfactory=1.0, Poor=0.85, Fair=0.50, Satisfactory=0.20, Not Rated=0.40</td></tr>
+            <tr><td>Reservoir Storage Volume</td><td>25%</td><td>Normalised to 99th percentile; larger reservoirs = more energy if they fail</td></tr>
+            <tr><td>Dam Age</td><td>20%</td><td>Older dams score higher; normalised over 120-year range</td></tr>
+            <tr><td>Dam Height</td><td>20%</td><td>Taller dams produce higher flood waves; normalised to 99th percentile</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Risk Tiers</h3>
+        <p>Risk scores are grouped into four tiers:</p>
+        <ul>
+          <li><span class="badge critical">Critical</span> — Score ≥ 70: Worst condition, large storage, old age</li>
+          <li><span class="badge high">High</span> — Score 50–70: Multiple compounding risk factors</li>
+          <li><span class="badge elevated" style="color:#000">Elevated</span> — Score 30–50: One or more elevated risk factors</li>
+          <li><span class="badge moderate">Moderate</span> — Score &lt; 30: Adequate condition, smaller scale</li>
+        </ul>
+
+        <h3>Froehlich (1995) Breach Discharge Estimate</h3>
+        <p>
+          For each dam with known height and storage, the app estimates the peak breach
+          discharge using the empirical Froehlich equation:
+        </p>
+        <p style="font-family:monospace;background:#21262d;padding:8px 12px;border-radius:4px;color:#e6edf3">
+          Q<sub>p</sub> = 0.607 &times; V<sub>w</sub><sup>0.295</sup> &times; h<sub>w</sub><sup>1.24</sup>
+        </p>
+        <p>
+          Where V<sub>w</sub> is the reservoir volume in m³ and h<sub>w</sub> is dam height in metres.
+          The estimated downstream inundation reach is then approximated as 1 mile per 1,000 m³/s
+          of peak discharge, capped at 20 miles. This is a simplified screening tool —
+          not a substitute for formal dam breach inundation studies.
+        </p>
+
+        <h3>Important Limitations</h3>
+        <ul>
+          <li>This is a screening-level risk index, not a formal hydraulic analysis.</li>
+          <li>Inundation reach estimates are highly simplified — actual flood extents depend on channel geometry, downstream obstacles, and breach mechanics not captured here.</li>
+          <li>Condition ratings in the NID reflect the most recent inspection; many dams are rated "Not Rated" due to gaps in inspection data.</li>
+          <li>This tool is for public education and research purposes only.</li>
+        </ul>
+
+        <h3>Source Code</h3>
+        <p>
+          Full methodology, data processing notebooks, and source code are available on
+          <a href="https://github.com/kalchikee/dam-failure-explorer" target="_blank" rel="noopener">GitHub</a>.
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <span>Data: <a href="https://nid.sec.usace.army.mil" target="_blank" rel="noopener">USACE NID 2026</a></span>
+    <span>&middot;</span>
+    <span>Risk model: Froehlich (1995) breach equations</span>
+    <span>&middot;</span>
+    <span>For educational use only &mdash; not a substitute for official inundation studies</span>
+    <span style="margin-left:auto">
+      <a href="https://github.com/kalchikee/dam-failure-explorer" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script src="web/js/app.js"></script>
+</body>
+</html>

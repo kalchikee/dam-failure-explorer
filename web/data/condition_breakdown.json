@@ -1,0 +1,26 @@
+[
+  {
+    "condition":"Satisfactory",
+    "count":5318
+  },
+  {
+    "condition":"Fair",
+    "count":4987
+  },
+  {
+    "condition":"Not Rated",
+    "count":2228
+  },
+  {
+    "condition":"Poor",
+    "count":2177
+  },
+  {
+    "condition":"Not Available",
+    "count":1402
+  },
+  {
+    "condition":"Unsatisfactory",
+    "count":460
+  }
+]
