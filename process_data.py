@@ -140,34 +140,52 @@ hh['est_reach_miles'] = (hh['peak_discharge_m3s'] / 1000).clip(1, 20).round(1)
 # ── 6. National GeoJSON (all high-hazard dams) ───────────────────────────────
 print("Building national GeoJSON…")
 
+def _s(v, default=''):
+    """Return empty string for NaN/None, else str(v)."""
+    if v is None: return default
+    try:
+        if pd.isna(v): return default
+    except (TypeError, ValueError):
+        pass
+    return str(v)
+
+def _n(v):
+    """Return None for NaN, else float(v)."""
+    try:
+        if pd.isna(v): return None
+    except (TypeError, ValueError):
+        pass
+    f = float(v)
+    return None if (f != f) else f  # second NaN guard
+
 def row_to_feature(row):
     return {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [row['lon'], row['lat']]},
         "properties": {
-            "id":              row.get('nid_id', ''),
-            "name":            str(row.get('name', 'Unknown Dam')),
-            "state":           str(row.get('state', '')),
-            "county":          str(row.get('county', '')),
-            "city":            str(row.get('city', '')),
-            "river":           str(row.get('river', '')),
-            "hazard":          str(row.get('hazard', '')),
-            "condition":       str(row.get('condition', 'Not Rated')),
-            "dam_type":        str(row.get('dam_type', '')),
-            "purpose":         str(row.get('purpose', '')),
-            "owner":           str(row.get('owner', '')),
-            "owner_type":      str(row.get('owner_type', '')),
-            "height_ft":       float(row['dam_height_ft']) if not pd.isna(row['dam_height_ft']) else None,
-            "storage_acft":    float(row['storage_acft']) if not pd.isna(row['storage_acft']) else None,
+            "id":              _s(row.get('nid_id')),
+            "name":            _s(row.get('name'), 'Unknown Dam'),
+            "state":           _s(row.get('state')),
+            "county":          _s(row.get('county')),
+            "city":            _s(row.get('city')),
+            "river":           _s(row.get('river')),
+            "hazard":          _s(row.get('hazard')),
+            "condition":       _s(row.get('condition'), 'Not Rated'),
+            "dam_type":        _s(row.get('dam_type')),
+            "purpose":         _s(row.get('purpose')),
+            "owner":           _s(row.get('owner')),
+            "owner_type":      _s(row.get('owner_type')),
+            "height_ft":       _n(row['dam_height_ft']),
+            "storage_acft":    _n(row['storage_acft']),
             "year_completed":  int(row['year_completed']) if not pd.isna(row['year_completed']) else None,
             "risk_score":      float(row['risk_score']),
             "risk_tier":       row['risk_tier'],
             "condition_score": round(float(row['condition_score']), 2),
-            "peak_discharge":  float(row['peak_discharge_m3s']) if not pd.isna(row.get('peak_discharge_m3s')) else None,
-            "est_reach_miles": float(row['est_reach_miles']) if not pd.isna(row.get('est_reach_miles')) else None,
-            "status":          str(row.get('status', '')),
-            "eap":             str(row.get('eap', '')),
-            "last_inspection": str(row.get('last_inspection', '')),
+            "peak_discharge":  _n(row.get('peak_discharge_m3s')),
+            "est_reach_miles": _n(row.get('est_reach_miles')),
+            "status":          _s(row.get('status')),
+            "eap":             _s(row.get('eap')),
+            "last_inspection": _s(row.get('last_inspection')),
         }
     }
 
@@ -176,7 +194,7 @@ geojson = {"type": "FeatureCollection", "features": features}
 
 out_path = os.path.join(OUT, "dams_national_highhazard.geojson")
 with open(out_path, 'w', encoding='utf-8') as f:
-    json.dump(geojson, f, separators=(',', ':'))
+    json.dump(geojson, f, separators=(',', ':'), allow_nan=False)
 size_mb = os.path.getsize(out_path) / 1e6
 print(f"  Saved {len(features):,} features → {out_path} ({size_mb:.1f} MB)")
 
