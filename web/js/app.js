@@ -315,10 +315,10 @@ async function loadData() {
 
   try {
     const [geojsonRes, stateRes, condRes, summaryRes] = await Promise.all([
-      fetch('data/dams_national_highhazard.geojson'),
-      fetch('data/state_risk_summary.json'),
-      fetch('data/condition_breakdown.json'),
-      fetch('data/summary_stats.json'),
+      fetch('web/data/dams_national_highhazard.geojson'),
+      fetch('web/data/state_risk_summary.json'),
+      fetch('web/data/condition_breakdown.json'),
+      fetch('web/data/summary_stats.json'),
     ]);
 
     const geojson = await geojsonRes.json();
